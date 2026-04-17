@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chase's Budget Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="background-elements">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <main class="container">
+    <header class="header">
+      <div class="logo">
+        <i data-lucide="wallet" class="logo-icon"></i>
+        <h1>Chase's Budget Tracker</h1>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Total Balance Card -->
+      <div class="card balance-card">
+        <div class="card-header">
+          <h3>Balance</h3>
+          <div class="icon-wrapper base-icon">
+            <i data-lucide="layers"></i>
+          </div>
+        </div>
+        <div class="card-body">
+          <h2 id="total-balance">$0.00</h2>
+        </div>
+      </div>
+
+
+
+      <!-- Expense Card -->
+      <div class="card stat-card expense">
+        <div class="card-header">
+          <h3>Expenses</h3>
+          <div class="icon-wrapper red-icon">
+            <i data-lucide="trending-down"></i>
+          </div>
+        </div>
+        <div class="card-body">
+          <h2 id="total-expense">$0.00</h2>
+        </div>
+      </div>
+
+      <!-- Chart Card -->
+      <div class="card stat-card chart-card">
+        <div class="card-header" style="margin-bottom: 0;">
+          <h3>Breakdown</h3>
+          <select id="month-selector" class="clear-btn" style="width: auto; font-size: 0.9rem; padding: 0.25rem 0.5rem; background: var(--input-bg); cursor: pointer; border: 1px solid var(--input-border); color: var(--text-secondary); border-radius: var(--border-radius-sm);">
+            <option value="all">Loading...</option>
+          </select>
+        </div>
+        <div class="card-body" style="height: 180px; position: relative; display: flex; justify-content: center; align-items: center; margin-top: 1rem;">
+          <canvas id="expense-chart"></canvas>
+          <div id="chart-empty-state" style="display: none; color: var(--text-secondary); font-size: 0.85rem; text-align: center; position: absolute;">No expenses to visualize</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <!-- Add Transaction Section -->
+      <section class="add-transaction card glass">
+        <div class="form-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h3 id="form-title" style="margin-bottom: 0;">Add New Transaction</h3>
+          <button type="button" id="cancel-edit-btn" class="clear-btn" style="display: none;">Cancel</button>
+        </div>
+        <form id="transaction-form">
+          <div class="form-group">
+            <label for="type">Type</label>
+            <div class="type-selector">
+              <input type="radio" id="type-expense" name="type" value="expense" checked>
+              <label for="type-expense" class="type-btn expense-btn">Expense</label>
+              
+              <input type="radio" id="type-income" name="type" value="income">
+              <label for="type-income" class="type-btn income-btn">Income</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="amount">Amount</label>
+            <div class="input-with-icon">
+              <i data-lucide="dollar-sign"></i>
+              <input type="number" id="amount" placeholder="0.00" step="0.01" required min="0.01">
+            </div>
+          </div>
+
+          <div class="form-group" id="category-group">
+            <label for="category">Category</label>
+            <select id="category" required>
+              <option value="" disabled selected>Select category</option>
+              <option value="Dining" style="color: #f472b6;">Dining</option>
+              <option value="Transport" style="color: #3b82f6;">Transport</option>
+              <option value="Bills" style="color: #8b5cf6;">Bills</option>
+              <option value="Shopping" style="color: #f43f5e;">Shopping</option>
+              <option value="Groceries" style="color: #f97316;">Groceries</option>
+              <option value="Misc." style="color: #64748b;">Misc.</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="subcategory-group" style="display: none; animation: slideIn 0.3s ease-out;">
+            <label for="subcategory">Subcategory</label>
+            <select id="subcategory">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description (Optional)</label>
+            <input type="text" id="description" placeholder="e.g., Groceries from Whole Foods">
+          </div>
+
+          <div class="form-group">
+            <label for="date">Date</label>
+            <input type="date" id="date" required>
+          </div>
+
+          <button type="submit" id="submit-btn" class="submit-btn">
+            <i data-lucide="plus-circle" id="submit-icon"></i>
+            <span id="submit-text">Add Transaction</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Transaction History Section -->
+      <section class="transaction-history card glass">
+        <div class="history-header">
+          <h3>Recent Transactions</h3>
+          <button id="clear-all" class="clear-btn">Clear All</button>
+        </div>
+        <div class="transaction-list" id="transaction-list">
+          <!-- Transactions will be inserted here dynamically -->
+          <div class="empty-state">
+            <i data-lucide="inbox"></i>
+            <p>No transactions yet.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
