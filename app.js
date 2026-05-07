@@ -29,7 +29,6 @@ const subcategoryGroup = document.getElementById('subcategory-group');
 const subcategoryInput = document.getElementById('subcategory');
 const descriptionInput = document.getElementById('description');
 const dateInput = document.getElementById('date');
-const clearAllBtn = document.getElementById('clear-all');
 const typeRadios = document.querySelectorAll('input[name="type"]');
 const formTitle = document.getElementById('form-title');
 const submitText = document.getElementById('submit-text');
@@ -407,6 +406,10 @@ function updateChart() {
            }]
         },
         options: {
+           radius: '80%',
+           layout: {
+             padding: { left: 0, right: 15, top: 0, bottom: 0 }
+           },
            responsive: true,
            maintainAspectRatio: false,
            cutout: '65%',
@@ -629,21 +632,6 @@ window.cancelDeleteTimer = function(btn) {
   btn.style.color = '';
   btn.style.transform = '';
 }
-
-// Clear All
-clearAllBtn.addEventListener('click', async () => {
-  if (transactions.length > 0) {
-    if (confirm('Are you sure you want to delete all transactions?')) {
-      for (const t of transactions) {
-        try {
-          await db.collection("transactions").doc(t.id).delete();
-        } catch (err) {
-          console.error("Error clearing collection:", err);
-        }
-      }
-    }
-  }
-});
 
 // Event Listeners
 form.addEventListener('submit', addTransaction);
