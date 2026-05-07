@@ -384,10 +384,14 @@ function updateChart() {
   
   const bgColors = originalLabels.map(l => getCategoryColor(l).text);
 
+  const isMobile = window.innerWidth <= 768;
+  const chartRadius = isMobile ? '60%' : '80%';
+
   if (expenseChart) {
      expenseChart.data.labels = labels;
      expenseChart.data.datasets[0].data = data;
      expenseChart.data.datasets[0].backgroundColor = bgColors;
+     expenseChart.options.radius = chartRadius;
      expenseChart.update();
   } else {
      Chart.defaults.color = '#94a3b8';
@@ -406,7 +410,7 @@ function updateChart() {
            }]
         },
         options: {
-           radius: '80%',
+           radius: chartRadius,
            layout: {
              padding: { left: 0, right: 15, top: 0, bottom: 0 }
            },
