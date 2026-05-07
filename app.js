@@ -17,7 +17,9 @@ lucide.createIcons();
 
 // Elements
 const balanceEl = document.getElementById('total-balance');
-const expenseEl = document.getElementById('total-expense');
+const monthlyIncomeEl = document.getElementById('monthly-income');
+const monthlyExpenseEl = document.getElementById('monthly-expense');
+const monthlyBalanceEl = document.getElementById('monthly-balance');
 const listEl = document.getElementById('transaction-list');
 const form = document.getElementById('transaction-form');
 const amountInput = document.getElementById('amount');
@@ -34,6 +36,8 @@ const submitText = document.getElementById('submit-text');
 const submitIcon = document.getElementById('submit-icon');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const monthSelector = document.getElementById('month-selector');
+const summaryMonthSelector = document.getElementById('summary-month-selector');
+const historyMonthSelector = document.getElementById('history-month-selector');
 const chartCtx = document.getElementById('expense-chart').getContext('2d');
 const chartEmptyState = document.getElementById('chart-empty-state');
 
@@ -43,6 +47,18 @@ let expenseChart = null;
 monthSelector.addEventListener('change', () => {
   updateChart();
 });
+
+if (summaryMonthSelector) {
+  summaryMonthSelector.addEventListener('change', () => {
+    updateValues();
+  });
+}
+
+if (historyMonthSelector) {
+  historyMonthSelector.addEventListener('change', () => {
+    renderTransactions();
+  });
+}
 
 // Helper: Get Today Local
 function getTodayLocal() {
@@ -123,7 +139,19 @@ function formatDate(dateStr) {
 // Replace init() with renderTransactions(), called by Firebase
 function renderTransactions() {
   listEl.innerHTML = '';
-  if (transactions.length === 0) {
+  
+  let targetTransactions = transactions;
+  
+  if (historyMonthSelector) {
+    const today = new Date();
+    const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const targetMonthStr = (historyMonthSelector.value && historyMonthSelector.value !== "current") 
+                           ? historyMonthSelector.value 
+                           : currentMonthStr;
+    targetTransactions = transactions.filter(t => t.date && t.date.startsWith(targetMonthStr));
+  }
+  
+  if (targetTransactions.length === 0) {
     listEl.innerHTML = `
       <div class="empty-state">
         <i data-lucide="inbox"></i>
@@ -133,8 +161,32 @@ function renderTransactions() {
     lucide.createIcons();
   } else {
     // Sort transactions by date descending
-    const sorted = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    sorted.forEach(addTransactionDOM);
+    const sorted = [...targetTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    let lastDate = null;
+    sorted.forEach(t => {
+      if (t.date !== lastDate) {
+        const dBreak = document.createElement('div');
+        dBreak.style.fontSize = '0.8rem';
+        dBreak.style.color = 'var(--text-secondary)';
+        dBreak.style.margin = lastDate === null ? '0.25rem 0 0.25rem 0.25rem' : '0.75rem 0 0.25rem 0.25rem';
+        dBreak.style.fontWeight = '600';
+        dBreak.style.textTransform = 'uppercase';
+        dBreak.style.letterSpacing = '0.05em';
+        dBreak.style.display = 'flex';
+        dBreak.style.alignItems = 'center';
+        dBreak.style.gap = '0.75rem';
+        
+        dBreak.innerHTML = `
+          <span>${formatDate(t.date)}</span>
+          <div style="flex: 1; height: 1px; background: var(--card-border);"></div>
+        `;
+        
+        listEl.appendChild(dBreak);
+        lastDate = t.date;
+      }
+      addTransactionDOM(t);
+    });
     lucide.createIcons();
   }
   updateValues();
@@ -178,7 +230,14 @@ function addTransactionDOM(transaction) {
         <button class="action-btn edit-btn" onclick="editTransaction('${transaction.id}')" title="Edit">
           <i data-lucide="edit-2"></i>
         </button>
-        <button class="action-btn delete-btn" onclick="removeTransaction('${transaction.id}')" title="Delete">
+        <button class="action-btn delete-btn" 
+          onmousedown="startDeleteTimer('${transaction.id}', this)" 
+          onmouseup="cancelDeleteTimer(this)" 
+          onmouseleave="cancelDeleteTimer(this)"
+          ontouchstart="startDeleteTimer('${transaction.id}', this)"
+          ontouchend="cancelDeleteTimer(this)"
+          ontouchcancel="cancelDeleteTimer(this)"
+          title="Hold 1s to Delete">
           <i data-lucide="trash-2"></i>
         </button>
       </div>
@@ -201,13 +260,29 @@ function updateMonthsDropdown() {
   });
 
   const sortedMonths = Array.from(months).sort().reverse();
+  
   const currentSelection = monthSelector.value;
   monthSelector.innerHTML = '';
+  
+  let currentSummarySelection = "current";
+  if (summaryMonthSelector) {
+     currentSummarySelection = summaryMonthSelector.value;
+     summaryMonthSelector.innerHTML = '';
+  }
+  
+  let currentHistorySelection = "current";
+  if (historyMonthSelector) {
+     currentHistorySelection = historyMonthSelector.value;
+     historyMonthSelector.innerHTML = '';
+  }
   
   const today = new Date();
   const currentYyyyMm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   
   let foundSelected = false;
+  let foundSummarySelected = false;
+  let foundHistorySelected = false;
+  
   sortedMonths.forEach(mStr => {
      const [y, m] = mStr.split('-');
      const d = new Date(y, m - 1);
@@ -216,9 +291,24 @@ function updateMonthsDropdown() {
      const opt = document.createElement('option');
      opt.value = mStr;
      opt.innerText = label;
-     
      if (mStr === currentSelection) foundSelected = true;
      monthSelector.appendChild(opt);
+     
+     if (summaryMonthSelector) {
+         const opt2 = document.createElement('option');
+         opt2.value = mStr;
+         opt2.innerText = mStr === currentYyyyMm ? "Current Month" : label;
+         if (mStr === currentSummarySelection) foundSummarySelected = true;
+         summaryMonthSelector.appendChild(opt2);
+     }
+     
+     if (historyMonthSelector) {
+         const opt3 = document.createElement('option');
+         opt3.value = mStr;
+         opt3.innerText = mStr === currentYyyyMm ? "Current Month" : label;
+         if (mStr === currentHistorySelection) foundHistorySelected = true;
+         historyMonthSelector.appendChild(opt3);
+     }
   });
   
   if (sortedMonths.length === 0) {
@@ -226,6 +316,20 @@ function updateMonthsDropdown() {
      opt.value = currentYyyyMm;
      opt.innerText = today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
      monthSelector.appendChild(opt);
+     
+     if (summaryMonthSelector) {
+         const opt2 = document.createElement('option');
+         opt2.value = currentYyyyMm;
+         opt2.innerText = "Current Month";
+         summaryMonthSelector.appendChild(opt2);
+     }
+     
+     if (historyMonthSelector) {
+         const opt3 = document.createElement('option');
+         opt3.value = currentYyyyMm;
+         opt3.innerText = "Current Month";
+         historyMonthSelector.appendChild(opt3);
+     }
   }
   
   if (foundSelected) {
@@ -234,6 +338,26 @@ function updateMonthsDropdown() {
      monthSelector.value = currentYyyyMm;
   } else if (sortedMonths.length > 0) {
      monthSelector.value = sortedMonths[0];
+  }
+  
+  if (summaryMonthSelector) {
+      if (foundSummarySelected) {
+         summaryMonthSelector.value = currentSummarySelection;
+      } else if (sortedMonths.includes(currentYyyyMm)) {
+         summaryMonthSelector.value = currentYyyyMm;
+      } else if (sortedMonths.length > 0) {
+         summaryMonthSelector.value = sortedMonths[0];
+      }
+  }
+  
+  if (historyMonthSelector) {
+      if (foundHistorySelected) {
+         historyMonthSelector.value = currentHistorySelection;
+      } else if (sortedMonths.includes(currentYyyyMm)) {
+         historyMonthSelector.value = currentYyyyMm;
+      } else if (sortedMonths.length > 0) {
+         historyMonthSelector.value = sortedMonths[0];
+      }
   }
 }
 
@@ -246,7 +370,9 @@ function updateChart() {
      aggs[t.category] = (aggs[t.category] || 0) + Math.abs(t.amount);
   });
   
-  const labels = Object.keys(aggs);
+  const originalLabels = Object.keys(aggs);
+  const formatChartMoney = (amt) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Math.round(amt));
+  const labels = originalLabels.map(cat => `${cat} (${formatChartMoney(aggs[cat])})`);
   const data = Object.values(aggs);
   
   if (labels.length === 0) {
@@ -257,7 +383,7 @@ function updateChart() {
      chartEmptyState.style.display = 'none';
   }
   
-  const bgColors = labels.map(l => getCategoryColor(l).text);
+  const bgColors = originalLabels.map(l => getCategoryColor(l).text);
 
   if (expenseChart) {
      expenseChart.data.labels = labels;
@@ -292,7 +418,8 @@ function updateChart() {
               tooltip: {
                  callbacks: {
                     label: function(context) {
-                       return ' ' + formatMoney(context.raw);
+                       const roundedVal = Math.round(context.raw);
+                       return ' ' + new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(roundedVal);
                     }
                  }
               }
@@ -308,16 +435,38 @@ function updateValues() {
   
   const total = amounts.reduce((acc, item) => (acc += item), 0);
   
-  const income = amounts
-    .filter(item => item > 0)
-    .reduce((acc, item) => (acc += item), 0);
+  const today = new Date();
+  const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  
+  const targetMonthStr = (summaryMonthSelector && summaryMonthSelector.value && summaryMonthSelector.value !== "current")
+                         ? summaryMonthSelector.value 
+                         : currentMonthStr;
+  
+  const monthlyTransactions = transactions.filter(t => t.date && t.date.startsWith(targetMonthStr));
+  
+  const monthlyIncome = monthlyTransactions
+    .filter(t => t.type === 'income')
+    .reduce((acc, t) => acc + t.amount, 0);
     
-  const expense = amounts
-    .filter(item => item < 0)
-    .reduce((acc, item) => (acc += item), 0) * -1;
+  const monthlyExpense = monthlyTransactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const monthlyBalance = monthlyIncome - monthlyExpense;
 
   balanceEl.innerText = formatMoney(total);
-  expenseEl.innerText = formatMoney(expense);
+  if (monthlyIncomeEl) monthlyIncomeEl.innerText = formatMoney(monthlyIncome);
+  if (monthlyExpenseEl) monthlyExpenseEl.innerText = formatMoney(monthlyExpense);
+  if (monthlyBalanceEl) {
+     monthlyBalanceEl.innerText = formatMoney(monthlyBalance);
+     if (monthlyBalance > 0) {
+        monthlyBalanceEl.style.color = 'var(--success-color)';
+     } else if (monthlyBalance < 0) {
+        monthlyBalanceEl.style.color = 'var(--danger-color)';
+     } else {
+        monthlyBalanceEl.style.color = 'var(--text-primary)';
+     }
+  }
 }
 
 // Add Transaction Logic
@@ -453,14 +602,32 @@ function resetFormState() {
 
 cancelEditBtn.addEventListener('click', resetFormState);
 
-// Remove Transaction (must be on window to work with inline onclick)
-window.removeTransaction = async function(id) {
-  try {
-    await db.collection("transactions").doc(id).delete();
-  } catch (err) {
-    console.error("Error removing document: ", err);
-    alert('Failed to delete transaction');
+// Hold to Delete Logic
+let deleteTimer = null;
+
+window.startDeleteTimer = function(id, btn) {
+  if (deleteTimer) clearTimeout(deleteTimer);
+  
+  btn.style.color = 'var(--danger-color)';
+  btn.style.transform = 'scale(0.85)';
+  
+  deleteTimer = setTimeout(async () => {
+    try {
+      await db.collection("transactions").doc(id).delete();
+    } catch (err) {
+      console.error("Error removing document: ", err);
+      alert('Failed to delete transaction');
+    }
+  }, 1000);
+}
+
+window.cancelDeleteTimer = function(btn) {
+  if (deleteTimer) {
+    clearTimeout(deleteTimer);
+    deleteTimer = null;
   }
+  btn.style.color = '';
+  btn.style.transform = '';
 }
 
 // Clear All
@@ -501,7 +668,7 @@ typeRadios.forEach(radio => {
 });
 
 categoryInput.addEventListener('change', (e) => {
-  if (amountInput.value === '3.30' || amountInput.value === '52.38') {
+  if (amountInput.value === '3.30' || amountInput.value === '52.38' || amountInput.value === '1495' || amountInput.value === '1495.00') {
     amountInput.value = '';
   }
 
@@ -535,8 +702,11 @@ subcategoryInput.addEventListener('change', (e) => {
   } else if (sub === 'Phone') {
     amountInput.value = '52.38';
     document.getElementById('type-expense').checked = true;
+  } else if (sub === 'Rent') {
+    amountInput.value = '1495';
+    document.getElementById('type-expense').checked = true;
   } else {
-    if (amountInput.value === '3.30' || amountInput.value === '52.38') {
+    if (amountInput.value === '3.30' || amountInput.value === '52.38' || amountInput.value === '1495' || amountInput.value === '1495.00') {
       amountInput.value = '';
     }
   }

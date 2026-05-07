@@ -30,7 +30,7 @@
       <!-- Total Balance Card -->
       <div class="card balance-card">
         <div class="card-header">
-          <h3>Balance</h3>
+          <h3>Savings</h3>
           <div class="icon-wrapper base-icon">
             <i data-lucide="layers"></i>
           </div>
@@ -45,13 +45,28 @@
       <!-- Expense Card -->
       <div class="card stat-card expense">
         <div class="card-header">
-          <h3>Expenses</h3>
-          <div class="icon-wrapper red-icon">
-            <i data-lucide="trending-down"></i>
+          <select id="summary-month-selector" class="clear-btn" style="width: auto; font-size: 1.1rem; padding: 0.25rem 0.5rem; background: var(--input-bg); cursor: pointer; border: 1px solid var(--input-border); color: var(--text-secondary); border-radius: var(--border-radius-sm); font-weight: 500;">
+            <option value="current">Current Month</option>
+          </select>
+          <div class="icon-wrapper base-icon">
+            <i data-lucide="calendar"></i>
           </div>
         </div>
         <div class="card-body">
-          <h2 id="total-expense">$0.00</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; margin-bottom: 1rem;">
+            <div>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Income</p>
+              <h3 id="monthly-income" style="color: var(--success-color); font-size: 1.6rem; font-weight: 600;">$0.00</h3>
+            </div>
+            <div style="text-align: right;">
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Expenses</p>
+              <h3 id="monthly-expense" style="color: var(--danger-color); font-size: 1.6rem; font-weight: 600;">$0.00</h3>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--card-border); padding-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+             <p style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 500;">Balance</p>
+             <h3 id="monthly-balance" style="font-size: 1.6rem; font-weight: 600;">$0.00</h3>
+          </div>
         </div>
       </div>
 
@@ -137,7 +152,12 @@
       <!-- Transaction History Section -->
       <section class="transaction-history card glass">
         <div class="history-header">
-          <h3>Recent Transactions</h3>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h3 style="margin: 0;">Transactions</h3>
+            <select id="history-month-selector" class="clear-btn" style="width: auto; font-size: 0.9rem; padding: 0.25rem 0.5rem; background: var(--input-bg); cursor: pointer; border: 1px solid var(--input-border); color: var(--text-secondary); border-radius: var(--border-radius-sm);">
+              <option value="current">Current Month</option>
+            </select>
+          </div>
           <button id="clear-all" class="clear-btn">Clear All</button>
         </div>
         <div class="transaction-list" id="transaction-list">
