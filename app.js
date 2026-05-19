@@ -502,11 +502,6 @@ async function addTransaction(e) {
       return;
     }
     
-    if (subcategoryGroup.style.display !== 'none' && !subCategory) {
-      alert('Please select a subcategory');
-      return;
-    }
-    
     category = subCategory || baseCategory;
   }
 
@@ -653,7 +648,7 @@ typeRadios.forEach(radio => {
       const cat = categoryInput.value;
       if (subcategoriesData[cat]) {
         subcategoryGroup.style.display = 'block';
-        subcategoryInput.required = true;
+        subcategoryInput.required = false;
       }
     }
   });
@@ -669,8 +664,8 @@ categoryInput.addEventListener('change', (e) => {
   
   if (subcategoriesData[cat]) {
     subcategoryGroup.style.display = 'block';
-    subcategoryInput.required = true;
-    subcategoryInput.innerHTML = '<option value="" disabled selected>Select subcategory</option>';
+    subcategoryInput.required = false;
+    subcategoryInput.innerHTML = '<option value="" selected>Select subcategory (optional)</option>';
     subcategoriesData[cat].forEach(sub => {
       const colorOption = getCategoryColor(sub.value).text;
       subcategoryInput.innerHTML += `<option value="${sub.value}" style="color: ${colorOption};">${sub.label}</option>`;
