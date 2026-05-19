@@ -39,9 +39,12 @@ const summaryMonthSelector = document.getElementById('summary-month-selector');
 const historyMonthSelector = document.getElementById('history-month-selector');
 const chartCtx = document.getElementById('expense-chart').getContext('2d');
 const chartEmptyState = document.getElementById('chart-empty-state');
+const weeklyChartCtx = document.getElementById('weekly-bar-chart').getContext('2d');
+const weeklyChartEmptyState = document.getElementById('weekly-chart-empty-state');
 
-// Chart Instance
+// Chart Instances
 let expenseChart = null;
+let weeklyBarChart = null;
 
 monthSelector.addEventListener('change', () => {
   updateChart();
@@ -191,6 +194,7 @@ function renderTransactions() {
   updateValues();
   updateMonthsDropdown();
   updateChart();
+  updateWeeklyChart();
 }
 
 // Real-time listener
@@ -433,6 +437,107 @@ function updateChart() {
            }
         }
      });
+  }
+}
+
+function updateWeeklyChart() {
+  const today = new Date();
+  
+  // Generate the last 7 days strings in 'YYYY-MM-DD' and short weekday labels
+  const last7DaysStr = [];
+  const labels = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(today.getDate() - i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    last7DaysStr.push(`${y}-${m}-${day}`);
+    labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+  }
+
+  // Filter expenses from the last 7 days
+  const recentTx = transactions.filter(t => {
+    if (t.type !== 'expense' || !t.date) return false;
+    return last7DaysStr.includes(t.date);
+  });
+
+  if (recentTx.length === 0) {
+    document.getElementById('weekly-bar-chart').style.display = 'none';
+    weeklyChartEmptyState.style.display = 'block';
+    return;
+  } else {
+    document.getElementById('weekly-bar-chart').style.display = 'block';
+    weeklyChartEmptyState.style.display = 'none';
+  }
+
+  // Group by category and date
+  const categoryData = {};
+  
+  recentTx.forEach(t => {
+    if (!categoryData[t.category]) {
+      categoryData[t.category] = [0, 0, 0, 0, 0, 0, 0];
+    }
+    const dayIndex = last7DaysStr.indexOf(t.date);
+    if (dayIndex !== -1) {
+      categoryData[t.category][dayIndex] += Math.abs(t.amount);
+    }
+  });
+
+  const datasets = Object.keys(categoryData).map(cat => {
+    return {
+      label: cat,
+      data: categoryData[cat],
+      backgroundColor: getCategoryColor(cat).text,
+      borderWidth: 0,
+      borderRadius: 4
+    };
+  });
+
+  if (weeklyBarChart) {
+    weeklyBarChart.data.labels = labels;
+    weeklyBarChart.data.datasets = datasets;
+    weeklyBarChart.update();
+  } else {
+    weeklyBarChart = new Chart(weeklyChartCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false }
+          },
+          y: {
+            stacked: true,
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: {
+              callback: function(value) {
+                return '$' + value;
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const roundedVal = Math.round(context.raw);
+                return context.dataset.label + ': ' + new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(roundedVal);
+              }
+            }
+          }
+        }
+      }
+    });
   }
 }
 
